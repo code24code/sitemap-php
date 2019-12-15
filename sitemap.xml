@@ -1,0 +1,81 @@
+<?php
+$requestlink = "$_SERVER[REQUEST_URI]";
+$requestlink = str_replace("/","",$requestlink);
+
+$servername = "localhost";
+$username = "database username here";
+$password = "database password";
+$dbname = "database name";
+$conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+$stmt2 = $conn->prepare("SELECT column1,column2 FROM table ORDER BY ID DESC LIMIT 100");
+$stmt2->execute();
+$arr = $stmt2->fetch();
+if(!$arr) exit('No rows');
+
+$datecreation = date('d-m-Y', strtotime("-1 week"));
+
+header( "Content-type: application/rss+xml");
+echo '<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:georss="http://www.georss.org/georss" version="2.0">
+<channel>
+<title>WebsiteSEOStats | RSS</title>
+<link>https://websiteseostats.com</link>
+<description>WebsiteSEOStats RSS</description>
+<language>en-us</language>
+<atom:link href="https://websiteseostats.com/'.$requestlink.'" rel="self" type="application/rss+xml" />';
+
+while($arr = $stmt2->fetch()) {
+
+$meta_dataarr = unserialize(base64_decode($arr["meta_data"]));
+
+$metatitle = str_replace("."," ",$meta_dataarr[0]);
+$metadescription = $meta_dataarr[1];
+$metakeywords = $meta_dataarr[2];
+
+$metatitle2 = str_replace("."," ",$arr["domain"]);
+
+if(empty($metatitle)) { $metatitle = str_replace("."," ",$arr["domain"]); }
+if(empty($metadescription)) { $metadescription = "$metatitle seo for every website seo each page should be properly configured, $metatitle SEO friendly seo can be done by On-Page SEO and Off-Page SEO Optimization"; }
+
+   $title="Website SEO Stats $metatitle Website Estimated Worth";
+   $link="https://websiteseostats.com/domain/".$arr["domain"];
+   $description="Website $link - $metatitle2 Estimated Worth $metadescription";
+
+        $find[] = '<';
+        $find[] = '\x92';
+        $find[] = '\x84';
+
+        $find_c[] = '\x92';
+        $find_c[] = '\x84';
+        $find_c[] = '&nbsp;';
+
+        $replace[] = '&#x3C;';
+        $replace[] = '&#39;';
+        $replace[] = '&#34;';
+
+        $replace_c[] = '&#39;';
+        $replace_c[] = '&#34;';
+        $replace_c[] = ' ';
+        $title = str_replace('&', '&#x26;', $title); 
+        $title = str_replace($find, $replace, $title);
+	$description = str_replace('&', '&#x26;', $description); 
+        $description = str_replace($find, $replace, $description);
+        $description = str_replace($find_c, $replace_c, $description);
+
+        $link = str_replace('&', '&amp;', $link);
+
+
+echo "
+<item>
+<title>$title</title>
+<description>$description</description>
+<link>$link</link>
+<pubDate>".date('D, d M Y H:i:s O', strtotime('-1 week'))."</pubDate>
+</item>";
+}
+echo "</channel>
+</rss>";
+
+?>
